@@ -2,6 +2,6 @@ namespace HostelTactilChallenge.Models
 {
     public class BoardColumn
     {
-        public string Rows { get; set; }
+        public IEnumerable<Chip> Rows { get; set; }
     }
 }
