@@ -1,0 +1,6 @@
+@HostelTactilChallenge_HostAddress = http://localhost:5241
+
+GET {{HostelTactilChallenge_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
