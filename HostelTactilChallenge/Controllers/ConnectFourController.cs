@@ -145,9 +145,9 @@ namespace HostelTactilChallenge.Controllers
             }
 
             // Check diagonal lines
-            var halfTransposed = Utilities.HalfTranspose(boardList);
+            var rotated45 = Utilities.Rotate45(boardList);
 
-            foreach (List<Chip> row in halfTransposed)
+            foreach (List<Chip> row in rotated45)
             {
                 CheckLines(ref result, row);
                 if (Result.IllegalMultipleLines == result)

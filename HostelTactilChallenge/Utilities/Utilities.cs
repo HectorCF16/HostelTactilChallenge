@@ -19,7 +19,7 @@ public static class Utilities
     }
 
     // Rotate 45 degrees 2D List, so diagonals become rows and columns
-    public static List<List<Chip>> HalfTranspose(List<List<Chip>> array)
+    public static List<List<Chip>> Rotate45(List<List<Chip>> array)
     {
         int rows = array.Count;
         int columns = array[0].Count;
@@ -56,7 +56,7 @@ public static class Utilities
 
         for (int j = 0; j < columns; j++)
         {
-            List<Chip> column = new List<Chip>();
+            List<Chip> column = new List<Chip>(); 
             for (int i = 0; i < rows; i++)
             {
                 column.Add(board[i][j]);
