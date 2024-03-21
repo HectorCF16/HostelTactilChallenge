@@ -7,7 +7,7 @@ using System.Drawing;
 namespace HostelTactilChallenge.Controllers
 {
     [ApiController]
-    [Route("connect-four")]
+    [Route("ht/api/connect-four")]
     public class ConnectFourController : ControllerBase
     {
         private readonly int boardColumns = 7;
