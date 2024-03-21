@@ -4,6 +4,8 @@ namespace HostelTactilChallenge;
 
 public static class Utilities
 {
+
+    // Check if sequence of chips exists ordered inside other sequence of chips
     public static bool SequenceExists(IEnumerable<Chip> enumerable, IEnumerable<Chip> sequence)
     {
         for (int i = 0; i <= enumerable.Count() - sequence.Count(); i++)
@@ -16,6 +18,7 @@ public static class Utilities
         return false;
     }
 
+    // Rotate 45 degrees 2D List, so diagonals become rows and columns
     public static List<List<Chip>> HalfTranspose(List<List<Chip>> array)
     {
         int rows = array.Count;
@@ -43,6 +46,7 @@ public static class Utilities
         return halfTransposedArray;
     }
 
+    // Rotate Matrix 90 degrees to the right, so  the number of rows becomes the number of columns, and vice versa
     public static List<List<Chip>> Transpose(List<List<Chip>> board)
     {
         int rows = board.Count;
