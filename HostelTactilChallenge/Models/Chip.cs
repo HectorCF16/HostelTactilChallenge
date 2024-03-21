@@ -1,5 +1,9 @@
 ﻿namespace HostelTactilChallenge.Models
 {
-    public enum Chip
-    { X, A, B}
+    public enum Chip : ushort
+    { 
+        Empty = 'X',
+        TeamA = 'A',
+        TeamB = 'B'
+    }
 }
