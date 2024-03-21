@@ -60,13 +60,6 @@ namespace HostelTactilChallenge.Controllers
             return false;
         }
 
-        bool CheckVerticalLine(BoardColumn boardColumn, Chip chip)
-        {
-            IEnumerable<Chip> line = Enumerable.Repeat(chip, 4);
-
-            return SequenceExists(boardColumn.Cells, line);
-        }
-
         bool HasFloatingPieces(Board board)
         {
             // Iterate through each column
@@ -88,21 +81,55 @@ namespace HostelTactilChallenge.Controllers
             return false; // No floating pieces found
         }
 
+        bool CheckLine(IEnumerable<Chip> chips, Chip chip, int length)
+        {
+            IEnumerable<Chip> line = Enumerable.Repeat(chip, length);
+
+            return SequenceExists(chips, line);
+        }
+
+        Result CheckAllLines(Board board)
+        {
+            Result result = Result.None;
+            int i = 0;
+            foreach(BoardColumn boardColumn in board.Columns)
+            {
+                // Check vertical lines
+                //para deshacerse de estos dos ifs habria que primero relacionar el Result.TeamAWins con las Chip.TeamA y con el teamB
+                if(CheckLine(boardColumn.Cells, Chip.TeamA, 4))
+                {
+                    if (result == Result.None && !CheckLine(boardColumn.Cells, Chip.TeamA, 5))
+                        result = Result.TeamAWins;
+                    else return Result.IllegalPosition;
+                }
+
+                if(CheckLine(boardColumn.Cells, Chip.TeamB, 4))
+                {
+                    if (result == Result.None && !CheckLine(boardColumn.Cells, Chip.TeamB, 5))
+                        result = Result.TeamBWins;
+                    else return Result.IllegalPosition;
+                }
+                i++;
+            }
+            return result;
+        }
+        
+
         [HttpGet("{message}")]
-        public Board Get(string message)
+        public string Get(string message)
         {
             if (!CheckBoardSize(message))
-                return new Board(Enumerable.Empty<BoardColumn>());
+                return Result.IllegalPosition.ToString();
 
             if (!CheckChipsByTeam(message))
-                return new Board(Enumerable.Empty<BoardColumn>());
-
+                return Result.IllegalPosition.ToString();
             Board board = ReadBoard(message);
 
             if (HasFloatingPieces(board))
-                return new Board(Enumerable.Empty<BoardColumn>());
+                return Result.IllegalPosition.ToString();
 
-            return board;
+
+            return CheckAllLines(board).ToString();
         }
     }
 }
