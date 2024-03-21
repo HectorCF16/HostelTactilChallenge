@@ -91,8 +91,35 @@ namespace HostelTactilChallenge.Controllers
         Result CheckAllLines(Board board)
         {
             Result result = Result.None;
-            int i = 0;
-            foreach(BoardColumn boardColumn in board.Columns)
+            List<List<Chip>> boardLines = new List<List<Chip>>();
+
+            foreach (var column in board.Columns)
+            {
+                var line = column.Cells.ToList();
+                boardLines.Add(line);
+            }
+
+            var transposedBoard = Transpose(boardLines);
+
+            //check horizontal wins
+            foreach(List<Chip> row in transposedBoard)
+            {
+                if (CheckLine(row, Chip.TeamA, 4))
+                {
+                    if (result == Result.None)
+                        result = Result.TeamAWins;
+                    else return Result.IllegalPosition;
+                }
+
+                if (CheckLine(row, Chip.TeamB, 4))
+                {
+                    if (result == Result.None)
+                        result = Result.TeamBWins;
+                    else return Result.IllegalPosition;
+                }
+            }
+
+            foreach (BoardColumn boardColumn in board.Columns)
             {
                 // Check vertical lines
                 //para deshacerse de estos dos ifs habria que primero relacionar el Result.TeamAWins con las Chip.TeamA y con el teamB
@@ -109,11 +136,32 @@ namespace HostelTactilChallenge.Controllers
                         result = Result.TeamBWins;
                     else return Result.IllegalPosition;
                 }
-                i++;
             }
+
+
             return result;
         }
-        
+
+        static List<List<Chip>> Transpose(List<List<Chip>> board)
+        {
+            int rows = board.Count;
+            int columns = board[0].Count;
+
+            List<List<Chip>> transposedBoard = new List<List<Chip>>();
+
+            for (int j = 0; j < columns; j++)
+            {
+                List<Chip> column = new List<Chip>();
+                for (int i = 0; i < rows; i++)
+                {
+                    column.Add(board[i][j]);
+                }
+                transposedBoard.Add(column);
+            }
+
+            return transposedBoard;
+        }
+
 
         [HttpGet("{message}")]
         public string Get(string message)
