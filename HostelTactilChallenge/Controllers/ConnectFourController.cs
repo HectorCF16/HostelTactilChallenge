@@ -59,6 +59,57 @@ namespace HostelTactilChallenge.Controllers
         }
         #endregion
 
+        #region transposeFunctions
+        // Rotate 45 degrees 2D List, so diagonals become rows and columns
+        private List<List<Chip>> Rotate45(List<List<Chip>> array)
+        {
+            int rows = array.Count;
+            int columns = array[0].Count;
+            int maxLength = Math.Max(rows, columns);
+
+            List<List<Chip>> halfTransposedArray = new List<List<Chip>>();
+
+            for (int i = 0; i < maxLength; i++)
+            {
+                halfTransposedArray.Add(new List<Chip>());
+
+                for (int j = 0; j < maxLength; j++)
+                {
+                    int row = j;
+                    int column = i + j;
+
+                    if (column < columns && row < rows)
+                    {
+                        halfTransposedArray[i].Add(array[row][column]);
+                    }
+                }
+            }
+
+            return halfTransposedArray;
+        }
+
+        // Rotate Matrix 90 degrees to the right, so  the number of rows becomes the number of columns, and vice versa
+        private List<List<Chip>> Transpose(List<List<Chip>> board)
+        {
+            int rows = board.Count;
+            int columns = board[0].Count;
+
+            List<List<Chip>> transposedBoard = new List<List<Chip>>();
+
+            for (int j = 0; j < columns; j++)
+            {
+                List<Chip> column = new List<Chip>();
+                for (int i = 0; i < rows; i++)
+                {
+                    column.Add(board[i][j]);
+                }
+                transposedBoard.Add(column);
+            }
+
+            return transposedBoard;
+        }
+        #endregion
+
         // Get Chip value from string board columns
         private IEnumerable<Chip> GetMatchingEnumValues<Chip>(string inputString)
         {
@@ -134,7 +185,7 @@ namespace HostelTactilChallenge.Controllers
                 boardList.Add(line);
             }
 
-            var transposedBoard = Utilities.Transpose(boardList);
+            var transposedBoard = Transpose(boardList);
 
             // Check vertical lines
             foreach(List<Chip> row in transposedBoard)
@@ -145,7 +196,7 @@ namespace HostelTactilChallenge.Controllers
             }
 
             // Check diagonal lines
-            var rotated45 = Utilities.Rotate45(boardList);
+            var rotated45 = Rotate45(boardList);
 
             foreach (List<Chip> row in rotated45)
             {
