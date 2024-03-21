@@ -2,6 +2,7 @@ using HostelTactilChallenge.Models;
 using Microsoft.AspNetCore.Mvc;
 using HostelTactilChallenge;
 using System.IO.Pipelines;
+using System.Drawing;
 
 namespace HostelTactilChallenge.Controllers
 {
@@ -61,32 +62,7 @@ namespace HostelTactilChallenge.Controllers
 
         #region transposeFunctions
         // Rotate 45 degrees 2D List, so diagonals become rows and columns
-        private List<List<Chip>> Rotate45(List<List<Chip>> array)
-        {
-            int rows = array.Count;
-            int columns = array[0].Count;
-            int maxLength = Math.Max(rows, columns);
-
-            List<List<Chip>> halfTransposedArray = new List<List<Chip>>();
-
-            for (int i = 0; i < maxLength; i++)
-            {
-                halfTransposedArray.Add(new List<Chip>());
-
-                for (int j = 0; j < maxLength; j++)
-                {
-                    int row = j;
-                    int column = i + j;
-
-                    if (column < columns && row < rows)
-                    {
-                        halfTransposedArray[i].Add(array[row][column]);
-                    }
-                }
-            }
-
-            return halfTransposedArray;
-        }
+        
 
         // Rotate Matrix 90 degrees to the right, so  the number of rows becomes the number of columns, and vice versa
         private List<List<Chip>> Transpose(List<List<Chip>> board)
@@ -171,6 +147,42 @@ namespace HostelTactilChallenge.Controllers
             }
         }
 
+        private void CheckDiagonal(ref Result result, List<List<Chip>> board, Chip chip)
+        {
+            int numRows = board.Count;
+            int numCols = board[0].Count;
+
+            // Check diagonal from top-left to bottom-right
+            int count = 0;
+            for (int i = 0, j = 0; i < numRows && j < numCols; i++, j++)
+            {
+                if (board[i][j] == chip)
+                {
+                    count++;
+                    if (count == 4) result = chipsTeams[chip]; // Four consecutive chips found
+                }
+                else
+                {
+                    count = 0; // Reset count if chip type changes
+                }
+            }
+
+            // Check diagonal from top-right to bottom-left
+            count = 0;
+            for (int i = 0, j = 0; i < numRows && j >= 0; i++, j--)
+            {
+                if (board[i][j] == chip)
+                {
+                    count++;
+                    if (count == 4) result = chipsTeams[chip]; // Four consecutive chips found
+                }
+                else
+                {
+                    count = 0; // Reset count if chip type changes
+                }
+            }
+        }
+
         // Check for connected chips in all lines of the boad
         private Result CheckAllLines(Board board)
         {
@@ -196,14 +208,9 @@ namespace HostelTactilChallenge.Controllers
             }
 
             // Check diagonal lines
-            var rotated45 = Rotate45(boardList);
 
-            foreach (List<Chip> row in rotated45)
-            {
-                CheckLines(ref result, row);
-                if (Result.IllegalMultipleLines == result)
-                    return Result.IllegalMultipleLines;
-            }
+            CheckDiagonal(ref result, boardList, Chip.TeamA);
+            CheckDiagonal(ref result, boardList, Chip.TeamB);
 
             foreach (BoardColumn boardColumn in board.Columns)
             {
