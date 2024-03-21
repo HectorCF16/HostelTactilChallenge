@@ -1,5 +1,6 @@
 using HostelTactilChallenge.Models;
 using Microsoft.AspNetCore.Mvc;
+using HostelTactilChallenge;
 using System.IO.Pipelines;
 
 namespace HostelTactilChallenge.Controllers
@@ -11,7 +12,55 @@ namespace HostelTactilChallenge.Controllers
         private readonly int boardColumns = 7;
         private readonly int boardRows = 6;
 
-        static IEnumerable<Chip> GetMatchingEnumValues<Chip>(string inputString) where Chip : struct, Enum
+        private readonly Dictionary<Chip, Result> chipsTeams = new Dictionary<Chip, Result>()
+        {
+            { Chip.TeamA, Result.TeamAWins },
+            { Chip.TeamB, Result.TeamBWins },
+        };
+
+        #region validateInputFunctions
+
+        // Check size of the board is the expected
+        private bool CheckBoardSize(string board)
+        {
+            return board.Length == boardColumns * boardRows;
+        }
+
+        // Check if TeamA is 1 or 0 chips more than TeamB
+        private bool CheckChipsByTeam(string board)
+        {
+            int teamAChips = board.Count(c => c == Convert.ToChar(Chip.TeamA));
+            int teamBChips = board.Count(c => c == Convert.ToChar(Chip.TeamB));
+            int difference = teamAChips - teamBChips;
+
+            return difference > -1 && difference <= 1;
+        }
+
+        // Check if any piece is floating
+        private bool HasFloatingPieces(Board board)
+        {
+            // Iterate through each column
+            foreach (BoardColumn boardColumn in board.Columns)
+            {
+                Chip[] floatingSequenceTeamA = { Chip.Empty, Chip.TeamA };
+                Chip[] floatingSequenceTeamB = { Chip.Empty, Chip.TeamB };
+
+                IEnumerable<Chip> floatingSequenceA = floatingSequenceTeamA;
+                IEnumerable<Chip> floatingSequenceB = floatingSequenceTeamB;
+
+                bool floatingASequence =Utilities.SequenceExists(boardColumn.Cells, floatingSequenceA);
+                bool floatingBSequence =Utilities.SequenceExists(boardColumn.Cells, floatingSequenceB);
+
+                if (floatingASequence || floatingBSequence)
+                    return true;
+            }
+            // No floating pieces found
+            return false; 
+        }
+        #endregion
+
+        // Get Chip value from string board columns
+        private IEnumerable<Chip> GetMatchingEnumValues<Chip>(string inputString)
         {
             foreach (char c in inputString)
             {
@@ -26,6 +75,7 @@ namespace HostelTactilChallenge.Controllers
             }
         }
 
+        // Get Chip value string from board
         private Board ReadBoard(string board)
         {
             return new Board(Enumerable.Range(0, boardColumns).Select(i => new BoardColumn
@@ -33,198 +83,118 @@ namespace HostelTactilChallenge.Controllers
                 Cells = GetMatchingEnumValues<Chip>(board.Substring(i * boardRows, boardRows))
             }).ToArray());
         }
-
-        bool CheckBoardSize(string board)
-        {
-            return board.Length == boardColumns * boardRows;
-        }
-
-        bool CheckChipsByTeam(string board)
-        {
-            int teamAChips = board.Count(c => c == Convert.ToChar(Chip.TeamA));
-            int teamBChips = board.Count(c => c == Convert.ToChar(Chip.TeamB));
-            int difference = teamAChips - teamBChips;
-
-            return difference > -1 && difference <= 1;
-        }
-
-        static bool SequenceExists(IEnumerable<Chip> enumerable, IEnumerable<Chip> sequence)
-        {
-            for (int i = 0; i <= enumerable.Count() - sequence.Count(); i++)
-            {
-                if (enumerable.Skip(i).Take(sequence.Count()).SequenceEqual(sequence))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        bool HasFloatingPieces(Board board)
-        {
-            // Iterate through each column
-            foreach (BoardColumn boardColumn in board.Columns)
-            {
-                Chip[] floatingSequenceTeamA = { Chip.Empty, Chip.TeamA };
-                Chip[] floatingSequenceTeamB = { Chip.Empty, Chip.TeamB };
-
-                IEnumerable<Chip> floatingSequenceA = floatingSequenceTeamA;
-                IEnumerable<Chip> floatingSequenceB = floatingSequenceTeamB;
-
-                bool floatingASequence = SequenceExists(boardColumn.Cells, floatingSequenceA);
-                bool floatingBSequence = SequenceExists(boardColumn.Cells, floatingSequenceB);
-
-                if (floatingASequence || floatingBSequence)
-                    return true;
-            }
-
-            return false; // No floating pieces found
-        }
-
-        static List<List<Chip>> HalfTranspose(List<List<Chip>> array)
-        {
-            int rows = array.Count;
-            int columns = array[0].Count;
-            int maxLength = Math.Max(rows, columns);
-
-            List<List<Chip>> halfTransposedArray = new List<List<Chip>>();
-
-            for (int i = 0; i < maxLength; i++)
-            {
-                halfTransposedArray.Add(new List<Chip>());
-
-                for (int j = 0; j < maxLength; j++)
-                {
-                    int row = j;
-                    int column = i + j;
-
-                    if (column < columns && row < rows)
-                    {
-                        halfTransposedArray[i].Add(array[row][column]);
-                    }
-                }
-            }
-
-            return halfTransposedArray;
-        }
-
-        bool CheckLine(IEnumerable<Chip> chips, Chip chip, int length)
+        
+        // Check if there's a sequence of repeated chips in a sequence of chips, given a type of chip
+        private bool CheckLine(IEnumerable<Chip> chips, Chip chip, int length)
         {
             IEnumerable<Chip> line = Enumerable.Repeat(chip, length);
 
-            return SequenceExists(chips, line);
+            return Utilities.SequenceExists(chips, line);
         }
 
-        Result CheckAllLines(Board board)
+        // Check if there's a sequence of 4 repeated chips in a column, given a type of chip
+        private void CheckHorizontalLines(ref Result result, BoardColumn boardColumn)
+        {
+            foreach (var chipTeam in chipsTeams)
+            {
+                if (CheckLine(boardColumn.Cells, chipTeam.Key, 4))
+                {
+                    if (result == Result.None && !CheckLine(boardColumn.Cells, Chip.TeamA, 5))
+                        result = chipTeam.Value;
+                    else result = Result.IllegalMultipleLines;
+                }
+            }
+        }
+
+        // Check if there're connected chips in a sequence of chips for every type of chip
+        private void CheckLines(ref Result result, List<Chip> row)
+        {
+            foreach (var chipTeam in chipsTeams)
+            {
+                if (CheckLine(row, chipTeam.Key, 4))
+                {
+                    if (result == Result.None)
+                        result = chipTeam.Value;
+                    else result = Result.IllegalMultipleLines;
+                }
+            }
+        }
+
+        // Check for connected chips in all lines of the boad
+        private Result CheckAllLines(Board board)
         {
             Result result = Result.None;
-            List<List<Chip>> boardLines = new List<List<Chip>>();
+
+            // Transform board to Lists
+            List<List<Chip>> boardList = new List<List<Chip>>();
 
             foreach (var column in board.Columns)
             {
                 var line = column.Cells.ToList();
-                boardLines.Add(line);
+                boardList.Add(line);
             }
 
-            var transposedBoard = Transpose(boardLines);
+            var transposedBoard = Utilities.Transpose(boardList);
 
-            //check horizontal wins
+            // Check vertical lines
             foreach(List<Chip> row in transposedBoard)
             {
-                if (CheckLine(row, Chip.TeamA, 4))
-                {
-                    if (result == Result.None)
-                        result = Result.TeamAWins;
-                    else return Result.IllegalPosition;
-                }
-
-                if (CheckLine(row, Chip.TeamB, 4))
-                {
-                    if (result == Result.None)
-                        result = Result.TeamBWins;
-                    else return Result.IllegalPosition;
-                }
+                CheckLines(ref result, row);
+                if (Result.IllegalMultipleLines == result)
+                    return Result.IllegalMultipleLines;
             }
 
-            //check diagonals
-            var halfTransposed = HalfTranspose(boardLines);
+            // Check diagonal lines
+            var halfTransposed = Utilities.HalfTranspose(boardList);
 
             foreach (List<Chip> row in halfTransposed)
             {
-                if (CheckLine(row, Chip.TeamA, 4))
-                {
-                    if (result == Result.None)
-                        result = Result.TeamAWins;
-                    else return Result.IllegalPosition;
-                }
-
-                if (CheckLine(row, Chip.TeamB, 4))
-                {
-                    if (result == Result.None)
-                        result = Result.TeamBWins;
-                    else return Result.IllegalPosition;
-                }
+                CheckLines(ref result, row);
+                if (Result.IllegalMultipleLines == result)
+                    return Result.IllegalMultipleLines;
             }
 
             foreach (BoardColumn boardColumn in board.Columns)
             {
-                // Check vertical lines
-                //para deshacerse de estos dos ifs habria que primero relacionar el Result.TeamAWins con las Chip.TeamA y con el teamB
-                if(CheckLine(boardColumn.Cells, Chip.TeamA, 4))
-                {
-                    if (result == Result.None && !CheckLine(boardColumn.Cells, Chip.TeamA, 5))
-                        result = Result.TeamAWins;
-                    else return Result.IllegalPosition;
-                }
-
-                if(CheckLine(boardColumn.Cells, Chip.TeamB, 4))
-                {
-                    if (result == Result.None && !CheckLine(boardColumn.Cells, Chip.TeamB, 5))
-                        result = Result.TeamBWins;
-                    else return Result.IllegalPosition;
-                }
+                // Check horizontal lines
+                CheckHorizontalLines(ref result, boardColumn);
+                if (Result.IllegalMultipleLines == result)
+                    return Result.IllegalMultipleLines;
             }
-
-
             return result;
         }
 
-        static List<List<Chip>> Transpose(List<List<Chip>> board)
+        // Error handling function
+        private Result HandleBoardMessage(string message)
         {
-            int rows = board.Count;
-            int columns = board[0].Count;
+            #region validateInput
+            if (!CheckBoardSize(message))
+                return Result.IllegalBoardSize;
 
-            List<List<Chip>> transposedBoard = new List<List<Chip>>();
+            if (!CheckChipsByTeam(message))
+                return Result.IllegalManyTeamChips;
+            #endregion
+            Board board = ReadBoard(message);
 
-            for (int j = 0; j < columns; j++)
-            {
-                List<Chip> column = new List<Chip>();
-                for (int i = 0; i < rows; i++)
-                {
-                    column.Add(board[i][j]);
-                }
-                transposedBoard.Add(column);
-            }
+            if (HasFloatingPieces(board))
+                return Result.IllegalFloatingChips;
 
-            return transposedBoard;
+
+            return CheckAllLines(board);
         }
-
 
         [HttpGet("{message}")]
         public string Get(string message)
         {
-            if (!CheckBoardSize(message))
-                return Result.IllegalPosition.ToString();
-
-            if (!CheckChipsByTeam(message))
-                return Result.IllegalPosition.ToString();
-            Board board = ReadBoard(message);
-
-            if (HasFloatingPieces(board))
-                return Result.IllegalPosition.ToString();
-
-
-            return CheckAllLines(board).ToString();
+            switch (HandleBoardMessage(message))
+            {
+                case Result.TeamAWins:
+                    return "A";
+                case Result.TeamBWins:
+                    return "B";
+                default:
+                    return "X";
+            }
         }
     }
 }

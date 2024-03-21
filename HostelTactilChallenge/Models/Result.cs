@@ -5,6 +5,9 @@
         TeamAWins,
         TeamBWins,
         None,
-        IllegalPosition
+        IllegalBoardSize,
+        IllegalManyTeamChips,
+        IllegalFloatingChips,
+        IllegalMultipleLines
     }
 }
