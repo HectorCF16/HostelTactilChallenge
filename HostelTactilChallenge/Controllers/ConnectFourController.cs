@@ -48,6 +48,46 @@ namespace HostelTactilChallenge.Controllers
             return difference > -1 && difference <= 1;
         }
 
+        static bool SequenceExists(IEnumerable<Chip> enumerable, IEnumerable<Chip> sequence)
+        {
+            for (int i = 0; i <= enumerable.Count() - sequence.Count(); i++)
+            {
+                if (enumerable.Skip(i).Take(sequence.Count()).SequenceEqual(sequence))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        bool CheckVerticalLine(BoardColumn boardColumn, Chip chip)
+        {
+            IEnumerable<Chip> line = Enumerable.Repeat(chip, 4);
+
+            return SequenceExists(boardColumn.Cells, line);
+        }
+
+        bool HasFloatingPieces(Board board)
+        {
+            // Iterate through each column
+            foreach (BoardColumn boardColumn in board.Columns)
+            {
+                Chip[] floatingSequenceTeamA = { Chip.Empty, Chip.TeamA };
+                Chip[] floatingSequenceTeamB = { Chip.Empty, Chip.TeamB };
+
+                IEnumerable<Chip> floatingSequenceA = floatingSequenceTeamA;
+                IEnumerable<Chip> floatingSequenceB = floatingSequenceTeamB;
+
+                bool floatingASequence = SequenceExists(boardColumn.Cells, floatingSequenceA);
+                bool floatingBSequence = SequenceExists(boardColumn.Cells, floatingSequenceB);
+
+                if (floatingASequence || floatingBSequence)
+                    return true;
+            }
+
+            return false; // No floating pieces found
+        }
+
         [HttpGet("{message}")]
         public Board Get(string message)
         {
@@ -58,6 +98,9 @@ namespace HostelTactilChallenge.Controllers
                 return new Board(Enumerable.Empty<BoardColumn>());
 
             Board board = ReadBoard(message);
+
+            if (HasFloatingPieces(board))
+                return new Board(Enumerable.Empty<BoardColumn>());
 
             return board;
         }
