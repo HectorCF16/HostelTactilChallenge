@@ -81,6 +81,33 @@ namespace HostelTactilChallenge.Controllers
             return false; // No floating pieces found
         }
 
+        static List<List<Chip>> HalfTranspose(List<List<Chip>> array)
+        {
+            int rows = array.Count;
+            int columns = array[0].Count;
+            int maxLength = Math.Max(rows, columns);
+
+            List<List<Chip>> halfTransposedArray = new List<List<Chip>>();
+
+            for (int i = 0; i < maxLength; i++)
+            {
+                halfTransposedArray.Add(new List<Chip>());
+
+                for (int j = 0; j < maxLength; j++)
+                {
+                    int row = j;
+                    int column = i + j;
+
+                    if (column < columns && row < rows)
+                    {
+                        halfTransposedArray[i].Add(array[row][column]);
+                    }
+                }
+            }
+
+            return halfTransposedArray;
+        }
+
         bool CheckLine(IEnumerable<Chip> chips, Chip chip, int length)
         {
             IEnumerable<Chip> line = Enumerable.Repeat(chip, length);
@@ -103,6 +130,26 @@ namespace HostelTactilChallenge.Controllers
 
             //check horizontal wins
             foreach(List<Chip> row in transposedBoard)
+            {
+                if (CheckLine(row, Chip.TeamA, 4))
+                {
+                    if (result == Result.None)
+                        result = Result.TeamAWins;
+                    else return Result.IllegalPosition;
+                }
+
+                if (CheckLine(row, Chip.TeamB, 4))
+                {
+                    if (result == Result.None)
+                        result = Result.TeamBWins;
+                    else return Result.IllegalPosition;
+                }
+            }
+
+            //check diagonals
+            var halfTransposed = HalfTranspose(boardLines);
+
+            foreach (List<Chip> row in halfTransposed)
             {
                 if (CheckLine(row, Chip.TeamA, 4))
                 {
